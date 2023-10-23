@@ -1,9 +1,5 @@
 /*
-Ted Moore
-
-October 20, 2023
-
-Formulae from: https://www.myphysicslab.com/pendulum/chaotic-pendulum-en.html
+Formula from: https://www.myphysicslab.com/pendulum/chaotic-pendulum-en.html
 */
 
 s.boot;
@@ -27,7 +23,7 @@ fork({
 		var scale = 200;
 		var circleWidth, halfCircleWidth;
 
-		var pt1 = origin + Point(sin(thetaDraw) * rDraw * scale,cos(thetaDraw) * rDraw * scale);
+		var pt1 = origin + Point(cos(thetaDraw) * rDraw * scale,sin(thetaDraw) * rDraw * scale);
 
 		Pen.line(origin,pt1);
 		Pen.stroke;
@@ -40,15 +36,16 @@ fork({
 	};
 
 	win.layout = VLayout(
-		Button().states_([["Random Position"]]).action_{~cb.setn([0,0])},
+		Button().states_([["Random Position"]]).action_{~cb.setn([rrand(0,2pi),0])},
 		uv
 	);
 
 	~chaoticPendulum = {
-		arg len = 1, gravity = 1, mass = 1, forceAmplitude = 0.01, damping = 0.5, forceFreq = 0.67;
+		arg len = 1, gravity = 1, mass = 1, forceAmplitude = 1.15, damping = 0.5, forceFreq = 0.667;
 		var theta, thetaP, thetaPP;
 		var time = Sweep.kr;
-		var preplus, num, den, torque, quotient;
+		var sig;
+		var preplus, num, den, torque, quotient, dt = 0.003;
 
 		# theta, thetaP = In.kr(~cb,2);
 
@@ -59,21 +56,19 @@ fork({
 		quotient = num/den;
 		thetaPP = preplus + quotient;
 
-		// [thetaPP,thetaP,theta].poll;
-
-		thetaP = thetaP + thetaPP;
-		theta = theta + thetaP;
-
-		[quotient,thetaPP].poll;
+		thetaP = thetaP + (thetaPP * dt);
+		theta = theta + (thetaP * dt);
 
 		Out.kr(~cb,[theta,thetaP]);
 
 		SendReply.kr(Impulse.kr(30),"/chaoticPendulum",[theta,len,mass]);
 
-		[time,preplus,torque,num,den,quotient,thetaPP,thetaP,theta]
+		sig = SinOsc.ar(theta.fold(0,2pi).linlin(0,2pi,80,4000) * 2.pow(SinOsc.ar(thetaP.linlin(-1,1,20,200)) * 5 * thetaPP));
+		sig = sig * 0.1;
+		sig.dup;
 	};
 
-	synth = ~chaoticPendulum.plot(5,separately:true);
+	synth = ~chaoticPendulum.play;
 
 	OSCdef(\chaoticPendulum,{
 		arg msg;
